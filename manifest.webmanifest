@@ -1,0 +1,16 @@
+{
+  "name": "Rosario",
+  "short_name": "Rosario",
+  "description": "Rosario personal: cuentas, misterios del día y oraciones en una sola pantalla.",
+  "lang": "es",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#141A45",
+  "theme_color": "#141A45",
+  "icons": [
+    { "src": "icono-180.png", "sizes": "180x180", "type": "image/png" },
+    { "src": "icono-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

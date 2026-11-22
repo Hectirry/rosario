@@ -1,0 +1,407 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Rosario</title>
+<meta name="description" content="Rosario personal: cuentas, misterios del día y oraciones en una sola pantalla.">
+<meta name="theme-color" content="#141A45">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Rosario">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icono-180.png">
+<link rel="icon" type="image/png" href="icono-180.png">
+<style>
+  :root {
+    --fondo: #141A45;
+    --halo: #3A3F96;
+    --perla: #F1ECDD;
+    --oro: #E2BC62;
+    --tenue: rgba(241, 236, 221, .62);
+    --linea: rgba(241, 236, 221, .22);
+    --serif: "Hoefler Text", "Baskerville", "Iowan Old Style", "Palatino", Georgia, serif;
+    --sans: "Avenir Next", "Avenir", -apple-system, "Helvetica Neue", sans-serif;
+  }
+  [data-juego="gozosos"]   { --fondo: #10254A; --halo: #2B4F92; }
+  [data-juego="dolorosos"] { --fondo: #2A1026; --halo: #672850; }
+  [data-juego="gloriosos"] { --fondo: #141A45; --halo: #3A3F96; }
+  [data-juego="luminosos"] { --fondo: #0C2E3B; --halo: #1F6878; }
+
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; margin: 0; overflow: hidden; overscroll-behavior: none; }
+  body {
+    background: var(--fondo);
+    color: var(--perla);
+    font-family: var(--sans);
+    -webkit-user-select: none; user-select: none;
+    -webkit-text-size-adjust: 100%;
+    touch-action: manipulation;
+    transition: background-color .6s ease;
+  }
+  button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+  button:focus-visible { outline: 2px solid var(--oro); outline-offset: 3px; border-radius: 8px; }
+
+  .app {
+    height: 100vh; height: 100dvh;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1.3fr) minmax(0, 1fr) auto;
+    padding:
+      max(10px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
+      max(8px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+    max-width: 520px; margin: 0 auto;
+    background: radial-gradient(ellipse 85% 46% at 50% 31%, var(--halo), transparent 72%);
+    transition: background .6s ease;
+  }
+
+  /* Encabezado */
+  .cabeza { display: flex; align-items: center; justify-content: space-between; min-height: 44px; }
+  .juego { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; font-size: 17px; font-weight: 600; letter-spacing: .01em; }
+  .juego svg { width: 12px; height: 12px; opacity: .7; }
+  .dia { font-size: 15px; color: var(--tenue); }
+
+  /* Zona de toque: rosario + oración */
+  .cuerpo { grid-row: 2 / 4; grid-column: 1; position: relative; display: grid; grid-template-rows: minmax(0, 1.3fr) minmax(0, 1fr); }
+  .toque { position: absolute; inset: 0; z-index: 2; width: 100%; height: 100%; }
+
+  .escena { container-type: size; display: grid; place-items: center; min-height: 0; }
+  .rosario { position: relative; width: min(100cqw, calc(100cqh * 300 / 424)); aspect-ratio: 300 / 424; }
+  .rosario svg { display: block; width: 100%; height: 100%; overflow: visible; }
+
+  .cadena { fill: none; stroke: var(--linea); stroke-width: 1; }
+  .cuenta { fill: var(--fondo); stroke: rgba(241, 236, 221, .5); stroke-width: 1.1; transition: fill .35s ease, stroke .35s ease; }
+  .cuenta.rezada { fill: var(--oro); stroke: var(--oro); }
+  .cuenta.actual { fill: var(--perla); stroke: var(--perla); }
+  .cruz { fill: none; stroke: rgba(241, 236, 221, .6); stroke-width: 3.4; stroke-linecap: round; transition: stroke .35s ease; }
+  .cruz.rezada { stroke: var(--oro); }
+  .cruz.actual { stroke: var(--perla); }
+  .aura { transition: transform .45s cubic-bezier(.3, .7, .2, 1); }
+  .aura circle { fill: none; stroke: var(--oro); stroke-width: 1.4; opacity: .9; transform-box: fill-box; transform-origin: center; animation: latir 2.8s ease-in-out infinite; }
+  @keyframes latir { 0%, 100% { transform: scale(1); opacity: .9; } 50% { transform: scale(1.28); opacity: .35; } }
+
+  .centro {
+    position: absolute; left: 50%; top: 33.02%; width: 61%;
+    transform: translate(-50%, -50%);
+    container-type: inline-size;
+    text-align: center;
+  }
+  .etiqueta { font-size: max(11px, 7cqi); color: var(--tenue); margin: 0 0 3cqi; }
+  .misterio { font-family: var(--serif); font-size: max(13px, 10cqi); line-height: 1.22; margin: 0; text-wrap: balance; }
+  .numero { font-family: var(--serif); font-size: 34cqi; line-height: 1; margin: 5cqi 0 0; color: var(--oro); font-variant-numeric: lining-nums; min-height: 34cqi; }
+  .de { font-size: max(11px, 7cqi); color: var(--tenue); margin: 1cqi 0 0; min-height: 1.3em; }
+
+  /* Oración */
+  .oracion { min-height: 0; display: flex; flex-direction: column; padding-top: 6px; }
+  .nombre { font-size: 15px; font-weight: 600; color: var(--oro); margin: 0 0 6px; text-align: center; }
+  .texto { flex: 1; min-height: 0; overflow: hidden; font-family: var(--serif); font-size: 20px; line-height: 1.38; text-align: center; text-wrap: pretty; }
+  .texto p { margin: 0 auto; max-width: 34em; }
+  .texto p + p { margin-top: .55em; color: rgba(241, 236, 221, .8); }
+
+  /* Pie */
+  .pie { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; min-height: 48px; font-size: 15px; }
+  .pie button { min-height: 44px; min-width: 44px; padding: 0 4px; color: var(--tenue); }
+  .pie button:disabled { opacity: .3; }
+  #atras { justify-self: start; }
+  #reiniciar { justify-self: end; }
+  .pista { color: var(--tenue); font-size: 14px; text-align: center; }
+
+  /* Selector de misterios */
+  dialog { border: 0; padding: 8px; border-radius: 18px; background: #F1ECDD; color: #17203F; width: min(88vw, 340px); font-family: var(--sans); }
+  dialog::backdrop { background: rgba(6, 9, 28, .6); }
+  dialog h2 { font-size: 15px; font-weight: 600; margin: 10px 12px 6px; }
+  dialog button { display: flex; justify-content: space-between; align-items: center; gap: 12px; width: 100%; min-height: 52px; padding: 0 12px; border-radius: 12px; text-align: left; font-size: 17px; }
+  dialog button span { font-size: 14px; opacity: .65; }
+  dialog button[aria-current="true"] { background: #17203F; color: #F1ECDD; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .aura, .cuenta, .cruz, body, .app { transition: none; }
+    .aura circle { animation: none; }
+  }
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <header class="cabeza">
+    <button class="juego" id="abrir" aria-haspopup="dialog">
+      <span id="nombreJuego">Misterios</span>
+      <svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 4l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <span class="dia" id="dia"></span>
+  </header>
+
+  <main class="cuerpo">
+    <button class="toque" id="toque" aria-label="Siguiente oración"></button>
+    <div class="escena">
+      <div class="rosario">
+        <svg id="svg" viewBox="0 0 300 424" aria-hidden="true"></svg>
+        <div class="centro">
+          <p class="etiqueta" id="etiqueta"></p>
+          <p class="misterio" id="misterio"></p>
+          <p class="numero" id="numero"></p>
+          <p class="de" id="de"></p>
+        </div>
+      </div>
+    </div>
+    <section class="oracion" aria-live="polite">
+      <h1 class="nombre" id="nombre"></h1>
+      <div class="texto" id="texto"></div>
+    </section>
+  </main>
+
+  <footer class="pie">
+    <button id="atras">Atrás</button>
+    <span class="pista" id="pista">Toca la pantalla para avanzar</span>
+    <button id="reiniciar">Reiniciar</button>
+  </footer>
+</div>
+
+<dialog id="selector" aria-labelledby="tituloSelector">
+  <h2 id="tituloSelector">¿Qué misterios quieres rezar?</h2>
+  <div id="opciones"></div>
+</dialog>
+
+<script>
+(() => {
+  const JUEGOS = {
+    gozosos: { nombre: 'Misterios gozosos', dias: 'lunes y sábado', color: '#10254A', lista: [
+      'La Anunciación del ángel a María',
+      'La Visitación de María a su prima Isabel',
+      'El Nacimiento de Jesús en Belén',
+      'La Presentación de Jesús en el templo',
+      'El Niño Jesús perdido y hallado en el templo' ] },
+    dolorosos: { nombre: 'Misterios dolorosos', dias: 'martes y viernes', color: '#2A1026', lista: [
+      'La Oración de Jesús en el huerto',
+      'La Flagelación del Señor',
+      'La Coronación de espinas',
+      'Jesús con la cruz a cuestas',
+      'La Crucifixión y muerte de Jesús' ] },
+    gloriosos: { nombre: 'Misterios gloriosos', dias: 'miércoles y domingo', color: '#141A45', lista: [
+      'La Resurrección del Señor',
+      'La Ascensión del Señor a los cielos',
+      'La Venida del Espíritu Santo',
+      'La Asunción de María a los cielos',
+      'La Coronación de María Santísima' ] },
+    luminosos: { nombre: 'Misterios luminosos', dias: 'jueves', color: '#0C2E3B', lista: [
+      'El Bautismo de Jesús en el Jordán',
+      'Las bodas de Caná',
+      'El anuncio del Reino de Dios',
+      'La Transfiguración del Señor',
+      'La institución de la Eucaristía' ] }
+  };
+  const POR_DIA = ['gloriosos', 'gozosos', 'dolorosos', 'gloriosos', 'luminosos', 'dolorosos', 'gozosos'];
+  const DIAS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+  const ORDINAL = ['Primer', 'Segundo', 'Tercer', 'Cuarto', 'Quinto'];
+
+  const FATIMA = 'Oh Jesús mío, perdona nuestros pecados, líbranos del fuego del infierno, lleva al cielo a todas las almas, especialmente a las más necesitadas de tu misericordia.';
+  const ORACIONES = {
+    senal: { nombre: 'Señal de la cruz', texto: [
+      'Por la señal de la Santa Cruz, de nuestros enemigos líbranos, Señor, Dios nuestro.',
+      'En el nombre del Padre, y del Hijo, y del Espíritu Santo. Amén.' ] },
+    credo: { nombre: 'Credo', texto: [
+      'Creo en Dios, Padre todopoderoso, Creador del cielo y de la tierra. Creo en Jesucristo, su único Hijo, nuestro Señor, que fue concebido por obra y gracia del Espíritu Santo, nació de Santa María Virgen, padeció bajo el poder de Poncio Pilato, fue crucificado, muerto y sepultado, descendió a los infiernos, al tercer día resucitó de entre los muertos, subió a los cielos y está sentado a la derecha de Dios, Padre todopoderoso. Desde allí ha de venir a juzgar a vivos y muertos.',
+      'Creo en el Espíritu Santo, la santa Iglesia católica, la comunión de los santos, el perdón de los pecados, la resurrección de la carne y la vida eterna. Amén.' ] },
+    padre: { nombre: 'Padre Nuestro', texto: [
+      'Padre nuestro, que estás en el cielo, santificado sea tu Nombre; venga a nosotros tu reino; hágase tu voluntad en la tierra como en el cielo.',
+      'Danos hoy nuestro pan de cada día; perdona nuestras ofensas, como también nosotros perdonamos a los que nos ofenden; no nos dejes caer en la tentación, y líbranos del mal. Amén.' ] },
+    ave: { nombre: 'Ave María', texto: [
+      'Dios te salve, María, llena eres de gracia, el Señor es contigo; bendita tú eres entre todas las mujeres, y bendito es el fruto de tu vientre, Jesús.',
+      'Santa María, Madre de Dios, ruega por nosotros, pecadores, ahora y en la hora de nuestra muerte. Amén.' ] },
+    gloria: { nombre: 'Gloria', texto: [
+      'Gloria al Padre, y al Hijo, y al Espíritu Santo.',
+      'Como era en el principio, ahora y siempre, por los siglos de los siglos. Amén.' ] },
+    gloriaFatima: { nombre: 'Gloria', texto: [
+      'Gloria al Padre, y al Hijo, y al Espíritu Santo. Como era en el principio, ahora y siempre, por los siglos de los siglos. Amén.',
+      FATIMA ] },
+    salve: { nombre: 'Salve', texto: [
+      'Dios te salve, Reina y Madre de misericordia, vida, dulzura y esperanza nuestra; Dios te salve. A ti llamamos los desterrados hijos de Eva; a ti suspiramos, gimiendo y llorando en este valle de lágrimas. Ea, pues, Señora, abogada nuestra, vuelve a nosotros esos tus ojos misericordiosos; y después de este destierro, muéstranos a Jesús, fruto bendito de tu vientre. ¡Oh clemente, oh piadosa, oh dulce Virgen María!',
+      'Ruega por nosotros, Santa Madre de Dios, para que seamos dignos de alcanzar las promesas de nuestro Señor Jesucristo. Amén.' ] },
+    fin: { nombre: 'Rosario terminado', texto: [
+      'En el nombre del Padre, y del Hijo, y del Espíritu Santo. Amén.' ] }
+  };
+
+  /* Pasos del rosario */
+  const PASOS = [];
+  const VIRTUD = ['Por la fe', 'Por la esperanza', 'Por la caridad'];
+  PASOS.push({ cuenta: 'cruz', oracion: 'senal', parte: 'inicio' });
+  PASOS.push({ cuenta: 'cruz', oracion: 'credo', parte: 'inicio' });
+  PASOS.push({ cuenta: 'p0', oracion: 'padre', parte: 'inicio' });
+  for (let i = 1; i <= 3; i++) PASOS.push({ cuenta: 'p' + i, oracion: 'ave', parte: 'inicio', n: i, de: 3, nota: VIRTUD[i - 1] });
+  PASOS.push({ cuenta: 'p3', oracion: 'gloria', parte: 'inicio' });
+  for (let d = 0; d < 5; d++) {
+    PASOS.push({ cuenta: 'L' + d, oracion: 'padre', parte: 'decena', d });
+    for (let a = 1; a <= 10; a++) PASOS.push({ cuenta: 'd' + d + 'a' + a, oracion: 'ave', parte: 'decena', d, n: a, de: 10 });
+    PASOS.push({ cuenta: 'd' + d + 'a10', oracion: 'gloriaFatima', parte: 'decena', d });
+  }
+  PASOS.push({ cuenta: 'medalla', oracion: 'salve', parte: 'final' });
+  PASOS.push({ cuenta: 'medalla', oracion: 'fin', parte: 'final', fin: true });
+
+  /* Dibujo del rosario */
+  const NS = 'http://www.w3.org/2000/svg';
+  const svg = document.getElementById('svg');
+  const CX = 150, CY = 140, R = 124;
+  const pos = {};      // id -> {x, y, r}
+  const orden = [];    // orden en que se rezan las cuentas
+  const nodo = (tipo, attrs) => { const e = document.createElementNS(NS, tipo); for (const k in attrs) e.setAttribute(k, attrs[k]); return e; };
+
+  (function dibujar() {
+    // Colgante: cruz, Padre Nuestro, tres Avemarías, primera cuenta grande, medalla
+    pos.cruz = { x: CX, y: 396, r: 20 };
+    pos.p0 = { x: CX, y: 362, r: 6.4 };
+    pos.p1 = { x: CX, y: 343, r: 4.3 };
+    pos.p2 = { x: CX, y: 328, r: 4.3 };
+    pos.p3 = { x: CX, y: 313, r: 4.3 };
+    pos.L0 = { x: CX, y: 293, r: 6.4 };
+    pos.medalla = { x: CX, y: CY + R + 5, r: 8.5 };
+    orden.push('cruz', 'p0', 'p1', 'p2', 'p3', 'L0');
+
+    // Aro: cinco decenas separadas por cuatro cuentas grandes
+    const hueco = 2.3, salto = 1.5;
+    const total = hueco * 2 + 5 * 9 + 4 * salto * 2;
+    const en = u => { const a = Math.PI / 2 + (u / total) * 2 * Math.PI; return { x: CX + R * Math.cos(a), y: CY + R * Math.sin(a) }; };
+    let u = hueco;
+    for (let d = 0; d < 5; d++) {
+      for (let a = 1; a <= 10; a++) {
+        pos['d' + d + 'a' + a] = { ...en(u), r: 4.3 };
+        orden.push('d' + d + 'a' + a);
+        if (a < 10) u += 1;
+      }
+      if (d < 4) { u += salto; pos['L' + (d + 1)] = { ...en(u), r: 6.4 }; orden.push('L' + (d + 1)); u += salto; }
+    }
+    orden.push('medalla');
+
+    svg.append(nodo('circle', { class: 'cadena', cx: CX, cy: CY, r: R }));
+    svg.append(nodo('path', { class: 'cadena', d: `M${CX} ${CY + R} V 378` }));
+    const aura = nodo('g', { class: 'aura', id: 'aura' });
+    aura.append(nodo('circle', { cx: 0, cy: 0, r: 10, id: 'auraC' }));
+    svg.append(aura);
+    for (const id of orden) {
+      if (id === 'cruz') continue;
+      const p = pos[id];
+      const e = id === 'medalla'
+        ? nodo('ellipse', { cx: p.x, cy: p.y, rx: 7, ry: 8.5 })
+        : nodo('circle', { cx: p.x, cy: p.y, r: p.r });
+      e.setAttribute('class', 'cuenta'); e.dataset.id = id; svg.append(e);
+    }
+    const cruz = nodo('path', { class: 'cruz', d: `M${CX} 378 V 416 M${CX - 11} 390 H ${CX + 11}` });
+    cruz.dataset.id = 'cruz'; svg.append(cruz);
+  })();
+
+  /* Estado */
+  const hoy = new Date();
+  const fecha = hoy.getFullYear() + '-' + (hoy.getMonth() + 1) + '-' + hoy.getDate();
+  let paso = 0, juego = POR_DIA[hoy.getDay()];
+  try {
+    const g = JSON.parse(localStorage.getItem('rosario') || 'null');
+    if (g && g.fecha === fecha && JUEGOS[g.juego] && g.paso >= 0 && g.paso < PASOS.length) { paso = g.paso; juego = g.juego; }
+  } catch (e) {}
+  const guardar = () => { try { localStorage.setItem('rosario', JSON.stringify({ fecha, paso, juego })); } catch (e) {} };
+
+  const $ = id => document.getElementById(id);
+  const texto = $('texto');
+
+  function ajustarTexto() {
+    let t = 21;
+    texto.style.fontSize = t + 'px';
+    while (texto.scrollHeight > texto.clientHeight + 1 && t > 10) { t -= 0.5; texto.style.fontSize = t + 'px'; }
+  }
+
+  function pintar() {
+    const p = PASOS[paso], j = JUEGOS[juego], o = ORACIONES[p.oracion];
+    document.documentElement.dataset.juego = juego;
+    document.querySelector('meta[name="theme-color"]').content = j.color;
+    $('nombreJuego').textContent = j.nombre;
+    $('dia').textContent = POR_DIA[hoy.getDay()] === juego ? DIAS[hoy.getDay()] : '';
+
+    // Cuentas
+    const idx = orden.indexOf(p.cuenta);
+    svg.querySelectorAll('[data-id]').forEach(e => {
+      const i = orden.indexOf(e.dataset.id);
+      e.classList.toggle('rezada', p.fin || i < idx);
+      e.classList.toggle('actual', !p.fin && i === idx);
+    });
+    const c = pos[p.cuenta];
+    $('aura').style.transform = `translate(${c.x}px, ${c.y}px)`;
+    $('auraC').setAttribute('r', c.r + 5);
+    $('aura').style.display = p.fin ? 'none' : '';
+
+    // Centro del aro
+    if (p.parte === 'decena') {
+      $('etiqueta').textContent = ORDINAL[p.d] + ' misterio';
+      $('misterio').textContent = j.lista[p.d];
+    } else if (p.parte === 'inicio') {
+      $('etiqueta').textContent = p.nota || 'Santo Rosario';
+      $('misterio').textContent = j.nombre;
+    } else {
+      $('etiqueta').textContent = p.fin ? 'Hasta mañana' : 'Para terminar';
+      $('misterio').textContent = p.fin ? 'Amén' : j.nombre;
+    }
+    $('numero').textContent = p.n || '';
+    $('de').textContent = p.n ? 'de ' + p.de : '';
+
+    // Oración
+    $('nombre').textContent = o.nombre;
+    texto.replaceChildren(...o.texto.map(t => { const e = document.createElement('p'); e.textContent = t; return e; }));
+    ajustarTexto();
+
+    // Pie
+    $('atras').disabled = paso === 0;
+    $('pista').textContent = p.fin ? 'Rosario terminado' : (paso === 0 ? 'Toca la pantalla para avanzar' : '');
+    $('toque').setAttribute('aria-label', p.fin ? 'Rosario terminado' : 'Siguiente oración');
+    guardar();
+  }
+
+  /* Acciones */
+  let bloqueo = null;
+  async function despierta() {
+    try { if (!bloqueo && 'wakeLock' in navigator) { bloqueo = await navigator.wakeLock.request('screen'); bloqueo.addEventListener('release', () => { bloqueo = null; }); } } catch (e) {}
+  }
+  const avanzar = () => { despierta(); if (paso < PASOS.length - 1) { paso++; pintar(); } };
+  const retroceder = () => { if (paso > 0) { paso--; pintar(); } };
+
+  $('toque').addEventListener('click', avanzar);
+  $('atras').addEventListener('click', retroceder);
+
+  let espera = null;
+  const reiniciar = $('reiniciar');
+  reiniciar.addEventListener('click', () => {
+    if (espera) {
+      clearTimeout(espera); espera = null; reiniciar.textContent = 'Reiniciar';
+      paso = 0; juego = POR_DIA[hoy.getDay()]; pintar();
+    } else {
+      reiniciar.textContent = '¿Seguro?';
+      espera = setTimeout(() => { espera = null; reiniciar.textContent = 'Reiniciar'; }, 3000);
+    }
+  });
+
+  document.addEventListener('keydown', e => {
+    if ($('selector').open) return;
+    if (e.key === 'ArrowRight') avanzar();
+    if (e.key === 'ArrowLeft') retroceder();
+  });
+
+  /* Selector de misterios */
+  const selector = $('selector');
+  $('abrir').addEventListener('click', () => {
+    $('opciones').replaceChildren(...Object.keys(JUEGOS).map(k => {
+      const b = document.createElement('button');
+      b.append(JUEGOS[k].nombre.replace('Misterios ', '').replace(/^./, m => m.toUpperCase()));
+      const s = document.createElement('span'); s.textContent = JUEGOS[k].dias; b.append(s);
+      if (k === juego) b.setAttribute('aria-current', 'true');
+      b.addEventListener('click', () => { juego = k; selector.close(); pintar(); });
+      return b;
+    }));
+    selector.showModal();
+  });
+  selector.addEventListener('click', e => { if (e.target === selector) selector.close(); });
+
+  window.addEventListener('resize', ajustarTexto);
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && paso > 0) despierta(); });
+  pintar();
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(ajustarTexto);
+
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+})();
+</script>
+</body>
+</html>
